@@ -2,7 +2,11 @@
 name = "rusty-krpc"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"
 
 [dependencies]
 tokio = { version = "1.18.2", features = ["full"] }
 prost = "0.10.4"
+
+[build-dependencies]
+prost-build = "0.10.4"
