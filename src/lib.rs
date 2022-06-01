@@ -59,7 +59,7 @@ impl Client {
     }
 
     pub async fn get_status(&mut self) -> Result<api::Status, Box<dyn Error>> {
-        let request = api::Request{
+        let request = api::Request {
             calls: vec![
                 api::ProcedureCall {
                     service: "KRPC".to_owned(),
@@ -71,6 +71,22 @@ impl Client {
         self.transact::<api::Response>(request).await?.to_result()?.pop().map_or_else(
             || Err("no api response".into()),
             |bytes| api::Status::decode(bytes.as_slice()).map_err(|e| e.into())
+        )
+    }
+
+    pub async fn get_services(&mut self) -> Result<api::Services, Box<dyn Error>> {
+        let request = api::Request {
+            calls: vec![
+                api::ProcedureCall {
+                    service: "KRPC".to_owned(),
+                    procedure: "GetServices".to_owned(),
+                    ..Default::default()
+                }
+            ]
+        };
+        self.transact::<api::Response>(request).await?.to_result()?.pop().map_or_else(
+            || Err("no api response".into()),
+            |bytes| api::Services::decode(bytes.as_slice()).map_err(|e| e.into())
         )
     }
 
