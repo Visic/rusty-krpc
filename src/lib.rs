@@ -99,7 +99,6 @@ impl Client {
 
         unsafe{ self.buffer.set_len(0); }
         let message_len = loop {
-            //TODO:: Figure out how to remove the .clone() and clean this up.. the issue before was that decode_length_delimiter consumes from the buffer, and the data is already taken from the stream..
             let current_len = self.buffer.len();
             self.buffer.reserve(current_len + 1);
             unsafe{ self.buffer.set_len(current_len + 1); }
@@ -134,6 +133,6 @@ mod tests {
     async fn services_test() {
         let mut client = Client::connect_to("127.0.0.1:50000", "HomeSweetHome").await.unwrap();
         let result = client.get_services().await;
-        println!("{:?}", result);
+        println!("{:#?}", result);
     }
 }
