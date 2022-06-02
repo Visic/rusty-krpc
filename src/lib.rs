@@ -91,6 +91,7 @@ impl Client {
     }
 
     async fn transact<RESP: Message + Default>(&mut self, request: impl Message) -> Result<RESP, Box<dyn Error>> {
+        unsafe{ self.buffer.set_len(0); }
         let request_len = request.encoded_len();
         self.buffer.reserve(request_len + encoded_len_varint(request_len as u64));
         request.encode_length_delimited(&mut self.buffer)?;
@@ -98,10 +99,12 @@ impl Client {
 
         unsafe{ self.buffer.set_len(0); }
         let message_len = loop {
-            self.buffer.reserve(self.buffer.len() + 1);
-            unsafe{ self.buffer.set_len(self.buffer.len() + 1); }
-            self.stream.read_exact(&mut self.buffer).await?;
-            if let Ok(v) = decode_length_delimiter(&mut self.buffer) { break v; }
+            //TODO:: Figure out how to remove the .clone() and clean this up.. the issue before was that decode_length_delimiter consumes from the buffer, and the data is already taken from the stream..
+            let current_len = self.buffer.len();
+            self.buffer.reserve(current_len + 1);
+            unsafe{ self.buffer.set_len(current_len + 1); }
+            self.stream.read_exact(&mut self.buffer[current_len..current_len + 1]).await?;
+            if let Ok(v) = decode_length_delimiter(&mut self.buffer.clone()) { break v; }
         };
         self.buffer.reserve(message_len);
         unsafe{ self.buffer.set_len(message_len); }
@@ -124,6 +127,13 @@ mod tests {
     async fn status_test() {
         let mut client = Client::connect_to("127.0.0.1:50000", "HomeSweetHome").await.unwrap();
         let result = client.get_status().await;
+        println!("{:?}", result);
+    }
+
+    #[tokio::test]
+    async fn services_test() {
+        let mut client = Client::connect_to("127.0.0.1:50000", "HomeSweetHome").await.unwrap();
+        let result = client.get_services().await;
         println!("{:?}", result);
     }
 }
