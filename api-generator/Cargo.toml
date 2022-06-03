@@ -1,0 +1,10 @@
+[package]
+name = "api-generator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+krpc-api = { path = "../krpc-api" }
+tokio = { version = "1.18.2", features = ["full"] }
+quick-xml = "0.23.0"
+convert_case = "0.5.0"

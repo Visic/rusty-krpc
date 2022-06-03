@@ -5,9 +5,11 @@ use prost::{Message, decode_length_delimiter};
 use prost::encoding::encoded_len_varint;
 use tokio::net::{TcpStream, ToSocketAddrs};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+mod generated;
 
 pub mod api {
-    include!(concat!(env!("OUT_DIR"), "/krpc.api.rs"));
+    pub use super::generated::*;
+    include!("../../resources/krpc.api.rs");
 
     impl Response {
         pub fn to_result(mut self) -> Result<Vec<Vec<u8>>, Box<dyn std::error::Error>> {
