@@ -1,51 +1,6 @@
-Enumeration {
-    name: "TextAnchor",
-    values: [
-        EnumerationValue {
-            name: "LowerCenter",
-            value: 0,
-            documentation: "<doc>\n<summary>\nLower center.\n</summary>\n</doc>",
-        },
-        EnumerationValue {
-            name: "LowerLeft",
-            value: 1,
-            documentation: "<doc>\n<summary>\nLower left.\n</summary>\n</doc>",
-        },
-        EnumerationValue {
-            name: "LowerRight",
-            value: 2,
-            documentation: "<doc>\n<summary>\nLower right.\n</summary>\n</doc>",
-        },
-        EnumerationValue {
-            name: "MiddleCenter",
-            value: 3,
-            documentation: "<doc>\n<summary>\nMiddle center.\n</summary>\n</doc>",
-        },
-        EnumerationValue {
-            name: "MiddleLeft",
-            value: 4,
-            documentation: "<doc>\n<summary>\nMiddle left.\n</summary>\n</doc>",
-        },
-        EnumerationValue {
-            name: "MiddleRight",
-            value: 5,
-            documentation: "<doc>\n<summary>\nMiddle right.\n</summary>\n</doc>",
-        },
-        EnumerationValue {
-            name: "UpperCenter",
-            value: 6,
-            documentation: "<doc>\n<summary>\nUpper center.\n</summary>\n</doc>",
-        },
-        EnumerationValue {
-            name: "UpperLeft",
-            value: 7,
-            documentation: "<doc>\n<summary>\nUpper left.\n</summary>\n</doc>",
-        },
-        EnumerationValue {
-            name: "UpperRight",
-            value: 8,
-            documentation: "<doc>\n<summary>\nUpper right.\n</summary>\n</doc>",
-        },
-    ],
-    documentation: "<doc>\n<summary>\nText alignment.\n</summary>\n</doc>",
-}
+<doc>
+<summary>
+The type of a vessel.
+See <see cref="M:SpaceCenter.Vessel.Type" />.
+</summary>
+</doc>

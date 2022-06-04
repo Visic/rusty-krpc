@@ -10,15 +10,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut services: Vec<api::Service> = client.get_services().await?.services;
     std::fs::remove_dir_all(API_GEN_PATH)?;
     std::fs::create_dir_all(API_GEN_PATH)?;
-    let service_names_iter = services.drain(..).map(|v| handle_service(v));
-    let mod_content = service_names_iter.map(|v| v.map(|v| format!("pub mod {};", v))).collect::<Result<Vec<_>, _>>()?;
+    let mut result_filenames = Vec::new();
+    for ele in services.drain(..) { result_filenames.append(&mut handle_service(ele)?); }
+    let mod_content = result_filenames.drain(..).map(|v| format!("pub mod {};", v)).collect::<Vec<_>>();
     std::fs::write(format!("{}/mod.rs", API_GEN_PATH), mod_content.join("\n"))?;
     Ok(())
 }
 
-fn handle_service(service: api::Service) -> Result<String, Box<dyn Error>> {
+fn handle_service(service: api::Service) -> Result<Vec<String>, Box<dyn Error>> {
     let documentation = handle_documentation(&service.documentation)?;
-    for e in service.enumerations.iter() { handle_enumeration(e); } //TODO
+    let mut result_filenames = service.enumerations.iter().map(|v| handle_enumeration(v)).collect::<Result<Vec<_>, _>>()?;
     let service_struct_name = format!("{}Service", service.name.to_case(Case::Pascal));
     let service_code = format!(
 r#"/*
@@ -30,7 +31,8 @@ impl {service_struct_name} {{
     );
     let service_filename = service_struct_name.to_case(Case::Snake);
     std::fs::write(format!("{}/{}.rs", API_GEN_PATH, service_filename), service_code)?;
-    Ok(service_filename)
+    result_filenames.push(service_filename);
+    Ok(result_filenames)
 }
 
 fn handle_documentation(documentation: &str) -> Result<String, Box<dyn Error>> {
@@ -71,8 +73,21 @@ fn handle_documentation(documentation: &str) -> Result<String, Box<dyn Error>> {
 fn handle_procedure(procedure: api::Procedure) {
 }
 
-fn handle_enumeration(enumeration: &api::Enumeration) {
-    println!("{:#?}", enumeration);
+fn handle_enumeration(enumeration: &api::Enumeration) -> Result<String, Box<dyn Error>> {
+    let documentation = handle_documentation(&enumeration.documentation)?;
+    let enumeration_name = enumeration.name.to_case(Case::Pascal);
+    let enumeration_entries = enumeration.values.iter().map(|v| handle_documentation(&v.documentation).map(|d| format!("/*\n{}\n*/\n{},", d, v.name))).collect::<Result<Vec<_>, _>>()?;
+    let enumeration = format!(
+r#"/*
+{documentation}
+*/
+pub enum {enumeration_name} {{
+    {enumeration_entries}
+}}"#, enumeration_name = enumeration_name, documentation = documentation, enumeration_entries = enumeration_entries.join("\n").replace("\n", "\n\t"),
+    );
+    let enumeration_filename = format!("{}_enumeration", enumeration_name.to_case(Case::Snake));
+    std::fs::write(format!("{}/{}.rs", API_GEN_PATH, enumeration_filename), enumeration)?;
+    Ok(enumeration_filename)
 }
 
 fn handle_exception(exception: api::Exception) {
