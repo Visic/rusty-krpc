@@ -52,7 +52,7 @@ fn handle_documentation(documentation: &str) -> Result<String, Box<dyn Error>> {
             },
             Ok(Event::Text(e)) => {
                 for line in e.unescape_and_decode(&reader)?.lines() {
-                    if line == "." { continue; }
+                    if line == "." || line.starts_with("See") { continue; }
                     if append_next {
                         append_next = false;
                         result_lines.last_mut().unwrap().push_str(&format!(" {}", line));
@@ -62,6 +62,7 @@ fn handle_documentation(documentation: &str) -> Result<String, Box<dyn Error>> {
                 }
             },
             Ok(Event::Eof) => break,
+            Ok(Event::Empty(v)) => result_lines.push(format!("\t\t{}", String::from_utf8_lossy(&v.unescaped()?))),
             Err(e) => { return Err(format!("Error at position {}: {:?}", reader.buffer_position(), e).into()); },
             _ => { /* nothing to do here */ },
         }
