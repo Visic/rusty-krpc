@@ -22,6 +22,7 @@ fn handle_service(service: api::Service) -> Result<String, Box<dyn Error>> {
     let service_directory = format!("{}/{}", API_GEN_PATH, service_mod_name);
     std::fs::create_dir_all(&service_directory)?;
     handle_enumerations(service.enumerations, &service_directory)?;
+    handle_classes(service.classes, &service_directory)?;
     let documentation = handle_documentation(&service.documentation)?;
     let service_code = format!(
 r#"/*
@@ -72,8 +73,25 @@ fn handle_documentation(documentation: &str) -> Result<String, Box<dyn Error>> {
     Ok(result_lines.join("\n"))
 }
 
-fn handle_class(class: api::Class) -> Result<String, Box<dyn Error>> {
-    todo!()
+fn handle_classes(mut classes: Vec<api::Class>, output_path: &str) -> Result<(), Box<dyn Error>> {
+    let class_directory = format!("{}/classes", output_path);
+    std::fs::create_dir_all(&class_directory)?;
+    let mut class_filenames = Vec::new();
+    for class in classes.drain(..) {
+        let class_name = class.name.to_case(Case::Pascal);
+        let class_filename = class.name.to_case(Case::Snake);
+        let documentation = handle_documentation(&class.documentation)?;
+        let class = format!(
+r#"/*
+{documentation}
+*/
+pub struct {class_name};"#, class_name = class_name, documentation = documentation,
+        );
+        std::fs::write(format!("{}/{}.rs", class_directory, class_filename), class)?;
+        class_filenames.push(class_filename);
+    }
+    std::fs::write(format!("{}/mod.rs", class_directory), class_filenames.drain(..).map(|v| format!("pub mod {};", v)).collect::<Vec<_>>().join("\n"))?;
+    Ok(())
 }
 
 fn handle_procedure(procedure: api::Procedure) {
@@ -85,7 +103,7 @@ fn handle_enumerations(mut enumerations: Vec<api::Enumeration>, output_path: &st
     let mut enumeration_filenames = Vec::new();
     for enumeration in enumerations.drain(..) {
         let enumeration_name = enumeration.name.to_case(Case::Pascal);
-        let enumeration_filename = format!("{}_enumeration", enumeration_name.to_case(Case::Snake));
+        let enumeration_filename = enumeration.name.to_case(Case::Snake);
         let enumeration_entries = enumeration.values.iter().map(|v| handle_documentation(&v.documentation).map(|d| format!("/*\n{}\n*/\n{},", d, v.name))).collect::<Result<Vec<_>, _>>()?;
         let documentation = handle_documentation(&enumeration.documentation)?;
         let enumeration = format!(

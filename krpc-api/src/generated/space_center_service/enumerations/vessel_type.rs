@@ -1,0 +1,52 @@
+/*
+	summary:
+		The type of a vessel.
+		see cref="M:SpaceCenter.Vessel.Type" 
+*/
+pub enum VesselType {
+    /*
+		summary:
+			Base.
+	*/
+	Base,
+	/*
+		summary:
+			Debris.
+	*/
+	Debris,
+	/*
+		summary:
+			Lander.
+	*/
+	Lander,
+	/*
+		summary:
+			Plane.
+	*/
+	Plane,
+	/*
+		summary:
+			Probe.
+	*/
+	Probe,
+	/*
+		summary:
+			Relay.
+	*/
+	Relay,
+	/*
+		summary:
+			Rover.
+	*/
+	Rover,
+	/*
+		summary:
+			Ship.
+	*/
+	Ship,
+	/*
+		summary:
+			Station.
+	*/
+	Station,
+}
