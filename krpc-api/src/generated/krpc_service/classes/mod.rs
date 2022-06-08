@@ -1,2 +1,2 @@
 pub mod expression;
-pub mod type;
+pub mod r#type;

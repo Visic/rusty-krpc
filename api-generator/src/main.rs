@@ -1,9 +1,15 @@
 use krpc_api::*;
 use convert_case::{Case, Casing};
-use std::{error::Error, borrow::Borrow};
+use std::{error::Error, borrow::Borrow, collections::HashMap};
 
 const API_GEN_PATH: &'static str = "krpc-api/src/generated";
 const SERVICE_MOD_CONTENT: &'static str = "pub mod service;\npub mod enumerations;\npub mod classes;";
+
+lazy_static::lazy_static! {
+    static ref RESTRICTED_NAMES: HashMap<&'static str, &'static str> = maplit::hashmap!{
+        "type" => "r#type"
+    };
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -11,18 +17,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut services: Vec<api::Service> = client.get_services().await?.services;
     std::fs::remove_dir_all(API_GEN_PATH)?;
     std::fs::create_dir_all(API_GEN_PATH)?;
-    let mod_entries = services.drain(..).map(|v| handle_service(v).map(|v| format!("pub mod {};", v))).collect::<Result<Vec<_>, _>>()?;
-    std::fs::write(format!("{}/mod.rs", API_GEN_PATH), mod_entries.join("\n"))?;
+    let mut service_names = services.drain(..).map(|v| handle_service(v)).collect::<Result<Vec<_>, _>>()?;
+    service_names.iter_mut().for_each(|v| if let Some(r) = RESTRICTED_NAMES.get(v.as_str()) { *v = r.to_string(); });
+    std::fs::write(format!("{}/mod.rs", API_GEN_PATH), service_names.drain(..).map(|v| format!("pub mod {};", v)).collect::<Vec<_>>().join("\n"))?;
     Ok(())
 }
 
-fn handle_service(service: api::Service) -> Result<String, Box<dyn Error>> {
+fn handle_service(mut service: api::Service) -> Result<String, Box<dyn Error>> {
     let service_struct_name = format!("{}Service", service.name.to_case(Case::Pascal));
     let service_mod_name = service_struct_name.to_case(Case::Snake);
     let service_directory = format!("{}/{}", API_GEN_PATH, service_mod_name);
     std::fs::create_dir_all(&service_directory)?;
     handle_enumerations(service.enumerations, &service_directory)?;
     handle_classes(service.classes, &service_directory)?;
+    let procedures = service.procedures.drain(..).map(|v| handle_procedure(v)).collect::<Result<Vec<_>, _>>()?;
     let documentation = handle_documentation(&service.documentation)?;
     let service_code = format!(
 r#"/*
@@ -30,7 +38,8 @@ r#"/*
 */
 pub struct {service_struct_name};
 impl {service_struct_name} {{
-}}"#, service_struct_name = service_struct_name, documentation = documentation
+    {procedures}
+}}"#, service_struct_name = service_struct_name, documentation = documentation, procedures = procedures.join("\n\n"),
     );
     std::fs::write(format!("{}/service.rs", service_directory), service_code)?;
     std::fs::write(format!("{}/mod.rs", service_directory), SERVICE_MOD_CONTENT)?;
@@ -90,11 +99,23 @@ pub struct {class_name};"#, class_name = class_name, documentation = documentati
         std::fs::write(format!("{}/{}.rs", class_directory, class_filename), class)?;
         class_filenames.push(class_filename);
     }
+    class_filenames.iter_mut().for_each(|v| if let Some(r) = RESTRICTED_NAMES.get(v.as_str()) { *v = r.to_string(); });
     std::fs::write(format!("{}/mod.rs", class_directory), class_filenames.drain(..).map(|v| format!("pub mod {};", v)).collect::<Vec<_>>().join("\n"))?;
     Ok(())
 }
 
-fn handle_procedure(procedure: api::Procedure) {
+fn handle_procedure(procedure: api::Procedure) -> Result<String, Box<dyn Error>> {
+    let mut procedure_name = procedure.name.to_case(Case::Snake);
+    if let Some(r) = RESTRICTED_NAMES.get(procedure_name.as_str()) { procedure_name = r.to_string(); }
+    let documentation = handle_documentation(&procedure.documentation)?;
+    let procedure = format!(
+r#"/*
+{documentation}
+*/
+pub fn {procedure_name}() {{
+}}"#, procedure_name = procedure_name, documentation = documentation,
+        );
+    Ok(procedure)
 }
 
 fn handle_enumerations(mut enumerations: Vec<api::Enumeration>, output_path: &str) -> Result<(), Box<dyn Error>> {
@@ -117,6 +138,7 @@ pub enum {enumeration_name} {{
         std::fs::write(format!("{}/{}.rs", enumeration_directory, enumeration_filename), enumeration)?;
         enumeration_filenames.push(enumeration_filename);
     }
+    enumeration_filenames.iter_mut().for_each(|v| if let Some(r) = RESTRICTED_NAMES.get(v.as_str()) { *v = r.to_string(); });
     std::fs::write(format!("{}/mod.rs", enumeration_directory), enumeration_filenames.drain(..).map(|v| format!("pub mod {};", v)).collect::<Vec<_>>().join("\n"))?;
     Ok(())
 }
